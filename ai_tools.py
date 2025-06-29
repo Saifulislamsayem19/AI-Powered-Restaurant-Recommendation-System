@@ -30,8 +30,8 @@ class RestaurantConcierge:
             'hidden gems', 'under the radar', 'gaining traction', 'losing traction'
         ]
         self.user_location = None
-        self.gathering_requirements = False  # Track if we're in requirements gathering mode
-        self.gathered_requirements = {}  # Store gathered requirements
+        self.gathering_requirements = False  
+        self.gathered_requirements = {}  
         self.special_event_keywords = [
             'meal plan', 'special event', 'celebration', 'anniversary', 
             'birthday', 'proposal', 'corporate', 'group dinner', 'breakfast'
@@ -176,7 +176,7 @@ class RestaurantConcierge:
         
         # Create a requirements gathering prompt
         if analysis.get('is_special_event'):
-            prompt = f"""The user is planning a special event: "{user_input}"
+            prompt = f""" The user is planning a special event: "{user_input}"
             
             We need these details to create the perfect experience:
             - Location: {analysis.get('location') or self.user_location or 'Not specified'}
@@ -190,9 +190,8 @@ class RestaurantConcierge:
             1. Acknowledges the special occasion
             2. Asks for the missing information in a conversational way
             3. Provides examples to make it easy for them to respond
-            4. Keeps it brief and natural
-
-            """
+            4. Keeps it brief and natural """
+            
         elif analysis.get('meal_type') in ['dinner', 'supper'] or 'dinner' in user_input.lower():
             prompt = f"""The user asked: "{user_input}"
             
