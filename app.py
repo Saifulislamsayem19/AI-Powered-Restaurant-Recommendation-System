@@ -16,7 +16,7 @@ load_dotenv()
 
 app = Flask(__name__, static_folder='static')
 CORS(app)
-Compress(app)  # Enable gzip compression
+Compress(app) 
 
 # Configure Database
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///chat_history.db')  
@@ -113,7 +113,7 @@ def chat_endpoint():
 def get_user_chat_history():
     """Get chat history for a specific user"""
     try:
-        user_id = request.args.get('user_id', 'default_user')  # Get user_id from query param, default to 'default_user'
+        user_id = request.args.get('user_id', 'default_user')  
         chat_history = ChatHistory.query.filter_by(user_id=user_id).all()
 
         history = [{
