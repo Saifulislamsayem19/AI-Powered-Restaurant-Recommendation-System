@@ -155,7 +155,7 @@ class RestaurantDataManager:
                 
                 # Add other query parameters
                 for key, value in query.items():
-                    if key != 'location':  # We already handled location
+                    if key != 'location':  
                         params[key] = value
             
             all_businesses = []
@@ -433,13 +433,13 @@ class RestaurantDataManager:
         review_count = restaurant.get('review_count', 0)
         
         # Normalized popularity metrics
-        rating_factor = min(rating * 20, 100)  # Convert to 0-100 scale
-        review_factor = min(np.log1p(review_count) * 15, 100)  # Logarithmic scaling
+        rating_factor = min(rating * 20, 100)  
+        review_factor = min(np.log1p(review_count) * 15, 100)  
         
         # Price features
         price_str = restaurant.get('price', '$')
         price_level = len(price_str) if isinstance(price_str, str) else 1
-        price_factor = (4 - min(price_level, 4)) * 15  # Higher price = better
+        price_factor = (4 - min(price_level, 4)) * 15  
         
         # Category features
         categories = restaurant.get('categories', [])
