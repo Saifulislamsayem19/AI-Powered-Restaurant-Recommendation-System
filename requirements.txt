@@ -1,0 +1,10 @@
+flask
+flask-cors
+flask_compress
+requests
+langchain
+openai
+pandas
+numpy
+scikit-learn
+python-dotenv

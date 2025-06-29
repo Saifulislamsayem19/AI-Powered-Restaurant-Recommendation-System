@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant AI Concierge</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 20px;
+            min-height: 100vh;
+        }
+
+        .main-content {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff6b6b, #ffa500);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 10px,
+                rgba(255, 255, 255, 0.1) 10px,
+                rgba(255, 255, 255, 0.1) 20px
+            );
+            animation: slide 20s linear infinite;
+        }
+
+        @keyframes slide {
+            0% { transform: translateX(-50px) translateY(-50px); }
+            100% { transform: translateX(50px) translateY(50px); }
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            max-height: 500px;
+            scroll-behavior: smooth;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            text-align: right;
+        }
+
+        .message.assistant {
+            text-align: left;
+        }
+
+        .message-content {
+            display: inline-block;
+            max-width: 80%;
+            padding: 15px 20px;
+            border-radius: 20px;
+            line-height: 1.5;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+
+        .message.assistant .message-content {
+            background: #f8f9fa;
+            color: #333;
+            border: 1px solid #e9ecef;
+            border-bottom-left-radius: 5px;
+        }
+
+        .chat-input-container {
+            padding: 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .chat-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .send-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 50px;
+            height: 50px;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .sidebar-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .sidebar-card h3 {
+            margin-bottom: 15px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .trending-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #ffeaa7, #fab1a0);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .trending-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transition: left 0.5s;
+        }
+
+        .trending-item:hover::before {
+            left: 100%;
+        }
+
+        .trending-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .trending-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .trending-details {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .hype-score {
+            background: linear-gradient(135deg, #ff6b6b, #ffa500);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            display: inline-block;
+            margin-top: 5px;
+        }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .quick-btn {
+            background: linear-gradient(135deg, #74b9ff, #0984e3);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .quick-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(116, 185, 255, 0.4);
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px;
+            background: linear-gradient(135deg, #55efc4, #00b894);
+            color: white;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            background: #00b894;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px 20px;
+            color: #666;
+            font-style: italic;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #e9ecef;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: linear-gradient(135deg, #ff7675, #fd79a8);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .analytics-item {
+            text-align: center;
+            padding: 15px;
+            background: linear-gradient(135deg, #a29bfe, #6c5ce7);
+            color: white;
+            border-radius: 10px;
+        }
+
+        .analytics-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            display: block;
+        }
+
+        .analytics-label {
+            font-size: 0.8rem;
+            opacity: 0.9;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                gap: 10px;
+                padding: 10px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .header p {
+                font-size: 1rem;
+            }
+
+            .quick-actions {
+                grid-template-columns: 1fr;
+            }
+
+            .analytics-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .restaurant-details {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #667eea;
+        }
+
+        .restaurant-name {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .restaurant-rating {
+            color: #ffa500;
+            margin-bottom: 8px;
+        }
+
+        .restaurant-cuisine {
+            color: #666;
+            font-style: italic;
+            margin-bottom: 5px;
+        }
+
+        .trend-badge {
+            background: linear-gradient(135deg, #ff6b6b, #ffa500);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            margin-left: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="main-content">
+            <div class="header">
+                <h1><i class="fas fa-utensils"></i> Restaurant AI Concierge</h1>
+                <p>Your intelligent dining companion powered by AI</p>
+            </div>
+            
+            <div class="chat-container">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message assistant">
+                        <div class="message-content">
+                            👋 Welcome! I'm your AI Restaurant Concierge. I can help you find amazing restaurants, discover trending spots, or create personalized meal plans. What are you craving today?
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="chat-input-container">
+                    <div class="input-group">
+                        <input 
+                            type="text" 
+                            class="chat-input" 
+                            id="chatInput" 
+                            placeholder="Ask me about restaurants, trends, or meal planning..."
+                            maxlength="500"
+                        >
+                        <button class="send-btn" id="sendBtn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="sidebar-card">
+                <div class="status-indicator">
+                    <div class="status-dot"></div>
+                    <span>AI Concierge Online</span>
+                </div>
+                
+                <div class="quick-actions">
+                    <button class="quick-btn" onclick="sendQuickMessage('Show me trending restaurants')">
+                        <i class="fas fa-fire"></i> Trending
+                    </button>
+                    <button class="quick-btn" onclick="sendQuickMessage('Plan a meal for tonight')">
+                        <i class="fas fa-calendar"></i> Meal Plan
+                    </button>
+                    <button class="quick-btn" onclick="sendQuickMessage('Find restaurants near me')">
+                        <i class="fas fa-map-marker-alt"></i> Near Me
+                    </button>
+                    <button class="quick-btn" onclick="resetChat()">
+                        <i class="fas fa-refresh"></i> Reset
+                    </button>
+                </div>
+            </div>
+
+            <div class="sidebar-card">
+                <h3><i class="fas fa-fire"></i> Trending Now</h3>
+                <div id="trendingList">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        Loading trending restaurants...
+                    </div>
+                </div>
+                <button class="quick-btn" onclick="toggleFutureTrends()" style="margin-top: 10px; width: 100%;">
+                    <i class="fas fa-crystal-ball"></i> <span id="futureToggleText">Show Future Predictions</span>
+                </button>
+            </div>
+
+            <div class="sidebar-card">
+                <h3><i class="fas fa-chart-bar"></i> Analytics</h3>
+                <div class="analytics-grid" id="analyticsGrid">
+                    <div class="analytics-item">
+                        <span class="analytics-number" id="totalRestaurants">---</span>
+                        <div class="analytics-label">Restaurants</div>
+                    </div>
+                    <div class="analytics-item">
+                        <span class="analytics-number" id="avgRating">---</span>
+                        <div class="analytics-label">Avg Rating</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isLoading = false;
+        let showingFutureTrends = false;
+        const API_BASE = window.location.origin;
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            setupEventListeners();
+            loadTrendingRestaurants();
+            loadAnalytics();
+            checkHealth();
+        });
+
+        function setupEventListeners() {
+            const chatInput = document.getElementById('chatInput');
+            const sendBtn = document.getElementById('sendBtn');
+
+            chatInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            chatInput.addEventListener('input', function() {
+                sendBtn.disabled = this.value.trim() === '' || isLoading;
+            });
+
+            sendBtn.addEventListener('click', sendMessage);
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (!message || isLoading) return;
+
+            input.value = '';
+            isLoading = true;
+            document.getElementById('sendBtn').disabled = true;
+
+            // Add user message to chat
+            addMessage(message, 'user');
+
+            // Add loading indicator
+            const loadingDiv = addMessage('', 'assistant', true);
+
+            try {
+                const response = await fetch(`${API_BASE}/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message: message }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                // Remove loading indicator
+                loadingDiv.remove();
+                
+                // Add assistant response
+                addMessage(data.response, 'assistant');
+
+                // Update trending if the query might have affected recommendations
+                if (message.toLowerCase().includes('trend') || message.toLowerCase().includes('popular')) {
+                    setTimeout(loadTrendingRestaurants, 1000);
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                loadingDiv.remove();
+                addMessage('Sorry, I encountered an error. Please try again.', 'assistant', false, true);
+            } finally {
+                isLoading = false;
+                document.getElementById('sendBtn').disabled = false;
+            }
+        }
+
+        function addMessage(content, sender, isLoading = false, isError = false) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+
+            if (isLoading) {
+                contentDiv.innerHTML = `
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        Thinking...
+                    </div>
+                `;
+            } else if (isError) {
+                contentDiv.innerHTML = `<div class="error-message"><i class="fas fa-exclamation-triangle"></i> ${content}</div>`;
+            } else {
+                contentDiv.innerHTML = formatMessage(content);
+            }
+
+            messageDiv.appendChild(contentDiv);
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            return messageDiv;
+        }
+
+        function formatMessage(content) {
+            // Enhanced message formatting
+            let formatted = content;
+
+            // Format restaurant sections with better styling
+            formatted = formatted.replace(/\*\*(🍽️|🔥|📅) ([^*]+)\*\*/g, '<div class="restaurant-name">$1 $2</div>');
+            
+            // Format bullet points
+            formatted = formatted.replace(/• \*\*([^*]+)\*\*: ([^\n]+)/g, '<div style="margin: 8px 0;"><strong>$1:</strong> $2</div>');
+            
+            // Format ratings
+            formatted = formatted.replace(/⭐ ([0-9.]+) stars/g, '<span class="restaurant-rating">⭐ $1 stars</span>');
+            
+            // Format cuisine types
+            formatted = formatted.replace(/\*\*Cuisine\*\*: ([^\n]+)/g, '<div class="restaurant-cuisine">$1</div>');
+            
+            // Format trend scores
+            formatted = formatted.replace(/🔥 ([0-9]+)\/100/g, '<span class="hype-score">🔥 $1/100</span>');
+            formatted = formatted.replace(/📈 ([0-9]+)\/100/g, '<span class="trend-badge">📈 $1/100</span>');
+            
+            // Convert line breaks
+            formatted = formatted.replace(/\n/g, '<br>');
+            
+            return formatted;
+        }
+
+        function sendQuickMessage(message) {
+            document.getElementById('chatInput').value = message;
+            sendMessage();
+        }
+
+        async function loadTrendingRestaurants() {
+            try {
+                const response = await fetch(`${API_BASE}/trending?future=${showingFutureTrends}`);
+                if (!response.ok) throw new Error('Failed to load trending restaurants');
+                
+                const data = await response.json();
+                displayTrendingRestaurants(data.trending_restaurants || []);
+            } catch (error) {
+                console.error('Error loading trending restaurants:', error);
+                document.getElementById('trendingList').innerHTML = `
+                    <div class="error-message">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Failed to load trending restaurants
+                    </div>
+                `;
+            }
+        }
+
+        function displayTrendingRestaurants(restaurants) {
+            const container = document.getElementById('trendingList');
+            
+            if (restaurants.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">No trending restaurants available</div>';
+                return;
+            }
+
+            container.innerHTML = restaurants.slice(0, 5).map(restaurant => `
+                <div class="trending-item" onclick="sendQuickMessage('Tell me more about ${restaurant.name}')">
+                    <div class="trending-name">${restaurant.name}</div>
+                    <div class="trending-details">
+                        ${restaurant.categories} • ${restaurant.location}
+                    </div>
+                    <div style="margin-top: 8px;">
+                        <span class="restaurant-rating">⭐ ${restaurant.rating}</span>
+                        <span class="hype-score">🔥 ${restaurant.hype_score}/100</span>
+                        ${restaurant.future_trend ? `<span class="trend-badge">📈 ${restaurant.future_trend}</span>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function toggleFutureTrends() {
+            showingFutureTrends = !showingFutureTrends;
+            const toggleText = document.getElementById('futureToggleText');
+            toggleText.textContent = showingFutureTrends ? 'Show Current Trends' : 'Show Future Predictions';
+            
+            // Add loading state
+            document.getElementById('trendingList').innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    Loading ${showingFutureTrends ? 'future predictions' : 'current trends'}...
+                </div>
+            `;
+            
+            await loadTrendingRestaurants();
+        }
+
+        async function loadAnalytics() {
+            try {
+                const healthResponse = await fetch(`${API_BASE}/health`);
+                if (healthResponse.ok) {
+                    const healthData = await healthResponse.json();
+                    document.getElementById('totalRestaurants').textContent = healthData.restaurants_loaded || '---';
+                }
+
+                const analyticsResponse = await fetch(`${API_BASE}/analytics`);
+                if (analyticsResponse.ok) {
+                    const analyticsData = await analyticsResponse.json();
+                    if (analyticsData.average_rating) {
+                        document.getElementById('avgRating').textContent = analyticsData.average_rating.toFixed(1);
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading analytics:', error);
+            }
+        }
+
+        async function checkHealth() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                
+                if (data.status === 'healthy') {
+                    console.log('✅ Backend is healthy');
+                    console.log(`📊 ${data.restaurants_loaded} restaurants loaded`);
+                    console.log(`🤖 Models ready: Hype(${data.hype_model_ready}), Trend(${data.trend_model_ready})`);
+                }
+            } catch (error) {
+                console.error('❌ Backend health check failed:', error);
+                addMessage('⚠️ Connection to backend failed. Please ensure the Flask server is running.', 'assistant', false, true);
+            }
+        }
+
+        async function resetChat() {
+            try {
+                await fetch(`${API_BASE}/reset_conversation`, { method: 'POST' });
+                
+                // Clear chat messages
+                const messagesContainer = document.getElementById('chatMessages');
+                messagesContainer.innerHTML = `
+                    <div class="message assistant">
+                        <div class="message-content">
+                            🔄 Chat reset! I'm ready to help you discover amazing restaurants. What can I find for you today?
+                        </div>
+                    </div>
+                `;
+
+                // Reload trending and analytics
+                loadTrendingRestaurants();
+                loadAnalytics();
+                
+            } catch (error) {
+                console.error('Error resetting chat:', error);
+            }
+        }
+
+        // Auto-refresh trending restaurants every 5 minutes
+        setInterval(loadTrendingRestaurants, 300000);
+        
+        // Auto-refresh analytics every 2 minutes
+        setInterval(loadAnalytics, 120000);
+    </script>
+</body>
+</html>

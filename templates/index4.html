@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant AI Concierge</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 800px;
+            height: 90vh;
+            max-height: 700px;
+            min-height: 500px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #ff6b6b, #ffa726);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        
+        .header h1 {
+            font-size: 1.8em;
+            margin-bottom: 5px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 1em;
+        }
+        
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            min-height: 0; /* Fix for flex overflow */
+        }
+        
+        .messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            scroll-behavior: smooth;
+            min-height: 0; /* Fix for flex overflow */
+        }
+
+        /* Custom scrollbar styling */
+        .messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .messages::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .messages::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 10px;
+        }
+
+        .messages::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        .message {
+            margin-bottom: 20px;
+            animation: fadeIn 0.3s ease-in;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        
+        .user-message {
+            text-align: right;
+        }
+        
+        .user-message .bubble {
+            background: #007bff;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 20px 20px 5px 20px;
+            display: inline-block;
+            max-width: 70%;
+            word-wrap: break-word;
+            text-align: left;
+        }
+        
+        .ai-message .bubble {
+            background: white;
+            color: #333;
+            padding: 15px 20px;
+            border-radius: 20px 20px 20px 5px;
+            display: inline-block;
+            max-width: 80%;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            white-space: pre-line;
+            line-height: 1.6;
+            font-size: 15px;
+            word-wrap: break-word;
+        }
+
+        .ai-message .bubble strong {
+            color: #007bff;
+            font-weight: 600;
+        }
+
+        .ai-message .bubble a {
+            color: #ff6b6b;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .ai-message .bubble a:hover {
+            text-decoration: underline;
+        }
+        
+        .input-area {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+        
+        .message-input {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+            resize: none;
+            min-height: 50px;
+            max-height: 100px;
+            font-family: inherit;
+        }
+        
+        .message-input:focus {
+            border-color: #007bff;
+        }
+        
+        .send-button {
+            padding: 15px 25px;
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            height: fit-content;
+            align-self: flex-end;
+            min-width: 80px;
+        }
+        
+        .send-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+        }
+        
+        .send-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .typing-indicator {
+            display: none;
+            padding: 15px 20px;
+            color: #666;
+            font-style: italic;
+            flex-shrink: 0;
+        }
+
+        .typing-dots {
+            display: inline-block;
+            position: relative;
+            width: 40px;
+            height: 10px;
+            margin-left: 10px;
+        }
+
+        .typing-dots span {
+            position: absolute;
+            top: 0;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #666;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+
+        .typing-dots span:nth-child(1) { left: 0; animation-delay: 0s; }
+        .typing-dots span:nth-child(2) { left: 12px; animation-delay: 0.2s; }
+        .typing-dots span:nth-child(3) { left: 24px; animation-delay: 0.4s; }
+
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+        
+        .quick-suggestions {
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #eee;
+            flex-shrink: 0;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        
+        .suggestion-chip {
+            display: inline-block;
+            background: white;
+            padding: 8px 15px;
+            margin: 5px 5px 5px 0;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            border: 1px solid #ddd;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        
+        .suggestion-chip:hover {
+            background: #007bff;
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        /* Scroll to bottom button */
+        .scroll-to-bottom {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+            transition: all 0.3s ease;
+            opacity: 0;
+            transform: translateY(10px);
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .scroll-to-bottom.visible {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: all;
+        }
+
+        .scroll-to-bottom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
+        }
+
+        .scroll-to-bottom:active {
+            transform: translateY(0);
+        }
+
+        /* New message notification */
+        .new-message-indicator {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #28a745;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 5;
+            cursor: pointer;
+        }
+
+        .new-message-indicator.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(10px);
+        }
+
+        .new-message-indicator:hover {
+            background: #218838;
+        }
+
+        /* Error message styling */
+        .error-message .bubble {
+            background: #f8d7da !important;
+            color: #721c24 !important;
+            border: 1px solid #f5c6cb;
+        }
+
+        /* Loading state */
+        .loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+
+        .scroll-to-bottom.bounce {
+            animation: bounce 1s;
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            body {
+                padding: 5px;
+            }
+            
+            .container {
+                height: 95vh;
+                border-radius: 15px;
+            }
+            
+            .header {
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 1.5em;
+            }
+            
+            .header p {
+                font-size: 0.9em;
+            }
+            
+            .messages {
+                padding: 15px;
+            }
+            
+            .input-area {
+                padding: 15px;
+                gap: 8px;
+            }
+            
+            .message-input {
+                font-size: 16px; /* Prevent zoom on iOS */
+            }
+            
+            .send-button {
+                padding: 12px 20px;
+                font-size: 14px;
+            }
+            
+            .quick-suggestions {
+                padding: 10px 15px;
+            }
+            
+            .user-message .bubble,
+            .ai-message .bubble {
+                max-width: 85%;
+                font-size: 14px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .user-message .bubble,
+            .ai-message .bubble {
+                max-width: 90%;
+            }
+            
+            .scroll-to-bottom {
+                width: 45px;
+                height: 45px;
+                font-size: 18px;
+                bottom: 15px;
+                right: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🍽️ Restaurant AI Concierge</h1>
+            <p>Your personal dining companion powered by AI</p>
+        </div>
+        
+        <div class="chat-container">
+            <div class="new-message-indicator" id="newMessageIndicator" onclick="scrollToBottom()">
+                New message ↓
+            </div>
+            
+            <div class="messages" id="messages">
+                <div class="message ai-message">
+                    <div class="bubble">
+                        Hello! I'm your restaurant concierge AI. I can help you find amazing restaurants, provide detailed information, and predict trending spots using machine learning.
+                        
+                        Try asking me things like:
+                        • "Find me Italian restaurants in San Francisco"
+                        • "What's trending for dinner tonight?"
+                        • "Tell me about [Restaurant Name]"
+                        • "Best coffee shops nearby"
+                    </div>
+                </div>
+            </div>
+
+            <button class="scroll-to-bottom" id="scrollToBottomBtn" onclick="scrollToBottom()" title="Scroll to bottom">
+                ↓
+            </button>
+            
+            <div class="typing-indicator" id="typingIndicator">
+                AI is thinking<span class="typing-dots"><span></span><span></span><span></span></span>
+            </div>
+            
+            <div class="quick-suggestions">
+                <div class="suggestion-chip" onclick="sendSuggestion('Find trendy restaurants for dinner')">🔥 Trending Dinner Spots</div>
+                <div class="suggestion-chip" onclick="sendSuggestion('Best Italian restaurants')">🍝 Italian Food</div>
+                <div class="suggestion-chip" onclick="sendSuggestion('Coffee shops for work')">☕ Coffee & Work</div>
+                <div class="suggestion-chip" onclick="sendSuggestion('Hidden gem restaurants')">💎 Hidden Gems</div>
+            </div>
+        </div>
+        
+        <div class="input-area">
+            <textarea id="messageInput" class="message-input" 
+                   placeholder="Ask me about restaurants..." 
+                   onkeypress="handleKeyPress(event)"
+                   oninput="adjustTextareaHeight()"
+                   rows="1"></textarea>
+            <button onclick="sendMessage()" class="send-button" id="sendButton">Send</button>
+        </div>
+    </div>
+
+    <script>
+        let isTyping = false;
+        let autoScrollEnabled = true;
+        let lastScrollTop = 0;
+        let messageHistory = [];
+        
+        // Initialize scroll detection
+        const messagesContainer = document.getElementById('messages');
+        const scrollToBottomBtn = document.getElementById('scrollToBottomBtn');
+        const newMessageIndicator = document.getElementById('newMessageIndicator');
+        const messageInput = document.getElementById('messageInput');
+        
+        // Scroll detection to show/hide scroll button
+        messagesContainer.addEventListener('scroll', function() {
+            const scrollTop = messagesContainer.scrollTop;
+            const scrollHeight = messagesContainer.scrollHeight;
+            const clientHeight = messagesContainer.clientHeight;
+            
+            // Check if user is near the bottom (within 100px)
+            const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100;
+            
+            if (isNearBottom) {
+                scrollToBottomBtn.classList.remove('visible');
+                autoScrollEnabled = true;
+                newMessageIndicator.classList.remove('show');
+            } else {
+                scrollToBottomBtn.classList.add('visible');
+                autoScrollEnabled = false;
+            }
+            
+            lastScrollTop = scrollTop;
+        });
+
+        // Auto-resize textarea
+        function adjustTextareaHeight() {
+            const textarea = messageInput;
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 100) + 'px';
+        }
+        
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+        
+        function sendSuggestion(suggestion) {
+            messageInput.value = suggestion;
+            adjustTextareaHeight();
+            sendMessage();
+        }
+        
+        function scrollToBottom(smooth = true) {
+            const messages = document.getElementById('messages');
+            if (smooth) {
+                messages.scrollTo({
+                    top: messages.scrollHeight,
+                    behavior: 'smooth'
+                });
+            } else {
+                messages.scrollTop = messages.scrollHeight;
+            }
+            autoScrollEnabled = true;
+            newMessageIndicator.classList.remove('show');
+        }
+        
+        function showNewMessageIndicator() {
+            if (!autoScrollEnabled) {
+                newMessageIndicator.classList.add('show');
+                // Auto-hide after 5 seconds
+                setTimeout(() => {
+                    newMessageIndicator.classList.remove('show');
+                }, 5000);
+            }
+        }
+        
+        function sanitizeHTML(str) {
+            const temp = document.createElement('div');
+            temp.textContent = str;
+            return temp.innerHTML;
+        }
+
+        function formatMessage(text) {
+            // Sanitize first, then apply formatting
+            let formatted = sanitizeHTML(text);
+            
+            // Convert markdown-style formatting to HTML
+            formatted = formatted
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\n/g, '<br>')
+                .replace(/⭐/g, '⭐ ')
+                .replace(/🔥/g, '🔥 ');
+
+            // Handle links more safely
+            formatted = formatted.replace(/\[([^\]]+)\]\(([^)]+)\)/g, function(match, text, url) {
+                // Basic URL validation
+                if (url.startsWith('http://') || url.startsWith('https://')) {
+                    return `<a href="${url}" target="_blank" rel="noopener noreferrer">${text}</a>`;
+                }
+                return match; // Return original if not a valid URL
+            });
+
+            return formatted;
+        }
+        
+        async function sendMessage() {
+            if (isTyping) return;
+            
+            const message = messageInput.value.trim();
+            
+            if (!message) return;
+
+            // Store message in history
+            messageHistory.push({ type: 'user', content: message, timestamp: Date.now() });
+            
+            // Add user message to chat
+            addMessage(message, 'user');
+            messageInput.value = '';
+            adjustTextareaHeight();
+            
+            // Show typing indicator
+            showTyping(true);
+            
+            try {
+                // Simulate API call for demo purposes
+                // Replace this with your actual API endpoint
+                await simulateAPICall(message);
+            } catch (error) {
+                console.error('Error:', error);
+                addMessage('Sorry, I\'m having trouble connecting. Please try again.', 'ai', true);
+            } finally {
+                showTyping(false);
+            }
+        }
+
+        // Demo function - replace with actual API call
+        async function simulateAPICall(message) {
+            // Simulate network delay
+            await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 1500));
+            
+            // Generate a demo response based on the message
+            let response = generateDemoResponse(message);
+            
+            messageHistory.push({ type: 'ai', content: response, timestamp: Date.now() });
+            addMessage(response, 'ai');
+        }
+
+        function generateDemoResponse(message) {
+            const lowerMessage = message.toLowerCase();
+            
+            if (lowerMessage.includes('italian') || lowerMessage.includes('pasta')) {
+                return `Here are some excellent Italian restaurants I found:
+
+**Nonna's Kitchen** ⭐⭐⭐⭐⭐
+Authentic family recipes, amazing carbonara
+📍 123 Main St | 💰💰 | 🔥 85/100
+
+**Villa Roma** ⭐⭐⭐⭐
+Wood-fired pizzas and fresh pasta
+📍 456 Oak Ave | 💰💰💰 | 🔥 92/100
+
+Would you like more details about any of these restaurants?`;
+            } else if (lowerMessage.includes('coffee') || lowerMessage.includes('cafe')) {
+                return `Great coffee spots for you:
+
+**Blue Bean Roasters** ⭐⭐⭐⭐⭐
+Perfect for working, great WiFi and atmosphere
+📍 789 Pine St | 💰 | 🔥 78/100
+
+**The Daily Grind** ⭐⭐⭐⭐
+Excellent espresso and pastries
+📍 321 Elm St | 💰💰 | 🔥 89/100
+
+Both have plenty of seating and power outlets!`;
+            } else if (lowerMessage.includes('trending') || lowerMessage.includes('popular')) {
+                return `🔥 **Trending Now:**
+
+**Fusion Garden** - Asian-fusion cuisine that's taking the city by storm
+⭐⭐⭐⭐⭐ | 🔥 96/100 | Reservation recommended
+
+**The Social Table** - Farm-to-table with Instagram-worthy dishes  
+⭐⭐⭐⭐ | 🔥 91/100 | Great for groups
+
+**Night Market Kitchen** - Late-night Korean BBQ spot
+⭐⭐⭐⭐ | 🔥 88/100 | Open until 2 AM
+
+These are all seeing increased bookings this week!`;
+            } else {
+                return `I'd be happy to help you find restaurants! I can assist with:
+
+• **Cuisine types** (Italian, Asian, Mexican, etc.)
+• **Dining occasions** (date night, family dinner, business lunch)
+• **Price ranges** and **dietary restrictions**
+• **Trending spots** and **hidden gems**
+• **Detailed reviews** and **recommendations**
+
+What type of dining experience are you looking for?`;
+            }
+        }
+        
+        function addMessage(text, sender, isError = false) {
+            const messagesContainer = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}-message${isError ? ' error-message' : ''}`;
+            
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble';
+            
+            if (sender === 'user') {
+                bubble.textContent = text;
+            } else {
+                bubble.innerHTML = formatMessage(text);
+            }
+            
+            messageDiv.appendChild(bubble);
+            messagesContainer.appendChild(messageDiv);
+            
+            // Auto-scroll logic
+            if (autoScrollEnabled) {
+                // Small delay to ensure DOM is updated
+                requestAnimationFrame(() => {
+                    scrollToBottom(true);
+                });
+            } else if (sender === 'ai') {
+                // Show new message indicator if user is not at bottom
+                showNewMessageIndicator();
+                // Add bounce animation to scroll button
+                scrollToBottomBtn.classList.add('bounce');
+                setTimeout(() => {
+                    scrollToBottomBtn.classList.remove('bounce');
+                }, 1000);
+            }
+        }
+        
+        function showTyping(show) {
+            isTyping = show;
+            const indicator = document.getElementById('typingIndicator');
+            const button = document.getElementById('sendButton');
+            const container = document.querySelector('.container');
+            
+            indicator.style.display = show ? 'block' : 'none';
+            button.disabled = show;
+            
+            if (show) {
+                container.classList.add('loading');
+            } else {
+                container.classList.remove('loading');
+            }
+            
+            if (show && autoScrollEnabled) {
+                requestAnimationFrame(() => {
+                    scrollToBottom(true);
+                });
+            }
+        }
+        
+        // Initialize app
+        function initializeApp() {
+            messageInput.focus();
+            adjustTextareaHeight();
+            
+            // Ensure we start at the bottom
+            requestAnimationFrame(() => {
+                scrollToBottom(false);
+            });
+        }
+
+        // Handle window resize to maintain scroll position
+        window.addEventListener('resize', function() {
+            adjustTextareaHeight();
+            if (autoScrollEnabled) {
+                requestAnimationFrame(() => {
+                    scrollToBottom(false);
+                });
+            }
+        });
+
+        // Handle visibility change (when user switches tabs)
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden && messageInput) {
+                messageInput.focus();
+            }
+        });
+
+        // Initialize when DOM is loaded
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeApp);
+        } else {
+            initializeApp();
+        }
+
+        // Error handling for unhandled promise rejections
+        window.addEventListener('unhandledrejection', function(event) {
+            console.error('Unhandled promise rejection:', event.reason);
+            if (isTyping) {
+                showTyping(false);
+                addMessage('Sorry, something went wrong. Please try again.', 'ai', true);
+            }
+        });
+    </script>
+</body>
+</html>
